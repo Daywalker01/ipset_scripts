@@ -1,0 +1,21 @@
+#!/bin/bash
+AS_LIST="AS41437 AS39912 AS8447"
+WHOIS_SRC="whois.radb.net"
+for AS in ${AS_LIST}; do
+#	echo "Gathering list of assigned networks from ${WHOIS_SRC}"
+	/sbin/ipset create ${AS}_new hash:net
+	networks=$(whois -h ${WHOIS_SRC} -- '-i origin '"${AS}"'' | grep -Eo "([0-9.]+){4}/[0-9]+" | sort)
+	for net in ${networks}; do
+		/sbin/ipset add ${AS}_new ${net} -exist
+	done
+	/sbin/ipset -q list ${AS} >/dev/null
+	if [ $? -ne 0 ]; then
+		/sbin/ipset rename ${AS}_new ${AS}
+	else
+		/sbin/ipset list ${AS}_new | tail -n+9 | sort > /root/${AS}_new
+		/sbin/ipset list ${AS} | tail -n+9 | sort > /root/${AS}_old
+		/sbin/ipset swap ${AS}_new ${AS}
+		diff /root/${AS}_old /root/${AS}_new
+		rm /root/${AS}_old /root/${AS}_new
+	fi
+done
