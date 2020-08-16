@@ -1,0 +1,32 @@
+#!/bin/bash
+
+ISO="at cn us ru" 
+DLROOT="http://www.ipdeny.com/ipblocks/data/countries"
+
+
+for c  in ${ISO}; do
+	tDB="country_${c}_$(date "+%Y-%m-%d_%H:%M").zone"
+	list_name="country_${c}"
+	new_list_name="${list_name}_new"
+	/sbin/ipset create ${new_list_name} hash:net
+	echo "Downloading list of networks for country ${c}"
+	/usr/bin/wget -qO ${tDB} ${DLROOT}/${c}.zone
+	BADIPS=$(egrep -v "^#|^$" $tDB)
+	echo "Inserting into new ipset list ${new_list_name}"
+	for ipblock in ${BADIPS}; do
+		/sbin/ipset add ${new_list_name} ${ipblock}
+	done
+
+	/sbin/ipset -q list ${list_name} >/dev/null
+	if [ $? -ne 0 ]; then
+		/sbin/ipset rename ${new_list_name} ${list_name}
+	else
+		/sbin/ipset list ${new_list_name} | tail -n+9 | sort > /root/c_${c}_new
+		/sbin/ipset list ${list_name} | tail -n+9 | sort > /root/c_${c}_old
+		/sbin/ipset swap ${new_list_name} ${list_name}
+		diff /root/c_${c}_old /root/c_${c}_new
+		rm /root/c_${c}_old /root/c_${c}_new
+	fi
+	/sbin/ipset destroy ${new_list_name}
+	rm ${tDB}
+done

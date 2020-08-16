@@ -1,0 +1,11 @@
+#!/bin/bash
+
+for ip in $(awk -F'[][]' '/authentication failed/ {print $4}' /var/log/mail.log | sort | uniq -c | sort -n | awk '/^ *([5-9]|[0-9][0-9]+)/ {print $NF}'); do 
+	/sbin/ipset add blocked_hosts ${ip} -q
+	if [ $? -eq 0 ] ; then echo "blocked new IP ${ip} from mail.log"; fi
+done
+
+for ip in $( awk '/authentication fail.+[0-9]/ {gsub("rhost=","",$NF); print $NF}' /var/log/auth.log | grep -v user= | sort | uniq -c | sort -n | awk '/^ *([5-9]|[0-9][0-9]+)/ {print $NF}'); do
+	/sbin/ipset add blocked_hosts ${ip} -q
+	if [ $? -eq 0 ] ; then echo "blocked new IP ${ip} from auth.log"; fi
+done
