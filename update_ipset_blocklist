@@ -1,5 +1,14 @@
 #!/bin/bash
 
+wget -qO bi_any_0_1d.ipset https://iplists.firehol.org/files/bi_any_0_1d.ipset
+/sbin/ipset create bi_any_0_1d_new hash:ip
+for ip in $(egrep -v '(^($|#))' bi_any_0_1d.ipset | sort); do
+	/sbin/ipset add bi_any_0_1d_new ${ip}
+done
+/sbin/ipset swap bi_any_0_1d_new bi_any_0_1d
+/sbin/ipset destroy bi_any_0_1d_new
+rm bi_any_0_1d.ipset
+
 for ip in $(awk -F'[][]' '/authentication failed/ {print $4}' /var/log/mail.log | sort | uniq -c | sort -n | awk '/^ *([5-9]|[0-9][0-9]+)/ {print $NF}'); do 
 	/sbin/ipset add blocked_hosts ${ip} -q
 	if [ $? -eq 0 ] ; then echo "blocked new IP ${ip} from mail.log"; fi
