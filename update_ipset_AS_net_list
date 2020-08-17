@@ -1,13 +1,16 @@
 #!/bin/bash
 
-AS_LIST="AS8447"
+AS=$1
+if [ -z ${AS} ] ; then
+	AS_LIST="AS8447"
+fi
 #AS8447 - A1
 
 WHOIS_SRC="whois.radb.net"
 for AS in ${AS_LIST}; do
 	echo "Gathering list of assigned networks for ${AS} from ${WHOIS_SRC}"
 	/sbin/ipset create ${AS}_new hash:net
-	networks=$(whois -h ${WHOIS_SRC} -- '-i origin '"${AS}"'' | grep -Eo "([0-9.]+){4}/[0-9]+" | sort)
+	networks=$(whois -h ${WHOIS_SRC} -- '-i origin '"${AS}"'' | grep -Eo "([0-9.]+){4}/[0-9]+" | sort | aggregate)
 	for net in ${networks}; do
 		/sbin/ipset add ${AS}_new ${net} -exist
 	done
