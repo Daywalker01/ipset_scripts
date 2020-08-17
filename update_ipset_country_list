@@ -1,6 +1,9 @@
 #!/bin/bash
 
-ISO="at cn us ru" 
+ISO=$1
+if [ -z ${ISO} ] ; then
+	ISO="at cn us ru" 
+fi
 DLROOT="http://www.ipdeny.com/ipblocks/data/countries"
 
 
@@ -11,7 +14,7 @@ for c  in ${ISO}; do
 	/sbin/ipset create ${new_list_name} hash:net
 	echo "Downloading list of networks for country ${c}"
 	/usr/bin/wget -qO ${tDB} ${DLROOT}/${c}.zone
-	BADIPS=$(egrep -v "^#|^$" $tDB)
+	BADIPS=$(egrep -v "^#|^$" $tDB | sort | aggregate)
 	echo "Inserting into new ipset list ${new_list_name}"
 	for ipblock in ${BADIPS}; do
 		/sbin/ipset add ${new_list_name} ${ipblock}
